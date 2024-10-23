@@ -44,6 +44,9 @@ The system will be built using a microservices architecture pattern where each s
 7. **Ranking Service**: Generates and serves the list of the top posts for the homepage measured as the total upvotes - downvotes in the last 24 hours. 
 8. **Search Service**: Provides search functionality for posts and comments. 
 
+### Architecture Diagram
+![Architecture diagram](scribble-arch-diagram.png)
+
 ## Component Design
 
 ### API Gateway
@@ -277,19 +280,18 @@ For posts and comments we use a noSQL approach since we want to keep the documen
 
 ## Security
 To ensure the security of the system, the following measures will be implemented:
-1. **Authentication and Authorization**: Use JWT tokens for user authentication and role-based access control for authorization.
-2. **Data Encryption**: Encrypt sensitive data both at rest and in transit using industry-standard encryption algorithms.
-3. **Input Validation**: Validate all user inputs to prevent SQL injection, XSS, and other injection attacks.
-4. **Rate Limiting**: Implement rate limiting at the API Gateway to prevent abuse and DDoS attacks.
-5. **Audit Logging**: Maintain audit logs for critical actions to detect and respond to security incidents.
+1. **Authentication and Authorization**: Use JWT tokens for user authentication.
+2. **Input Validation**: Validate all user inputs to prevent SQL injection, XSS, and other injection attacks.
+3. **Rate Limiting**: Implement rate limiting at the API Gateway to prevent abuse and DDoS attacks.
+4. **Audit Logging**: Maintain audit logs for critical actions to detect and respond to security incidents.
 
 ## Scalability
 To handle increased load, the system will employ the following scalability strategies:
-1. **Horizontal Scaling**: Scale out services by adding more instances behind a load balancer.
-2. **Database Sharding**: Distribute database load by sharding data across multiple database instances.
-3. **Caching**: Use caching mechanisms like Redis or Memcached to reduce database load and improve response times.
-4. **Asynchronous Processing**: Use message queues for tasks that can be processed asynchronously to improve system responsiveness.
+1. **Horizontal Scaling**: Scale out services by adding more instances behind a load balancer. 
+2. **Database Sharding**: Distribute database load by sharding data across multiple database instances. This will specifically be used for the posts + comments service.
+3. **Caching**: Use caching mechanisms like Redis or Memcached at the API gateway layer to improve response times and reduce load. 
+4. **Asynchronous Processing**: Use message queues for tasks that can have eventual consistency which are updating the votes of posts and comments, and updating the search index. 
 5. **Auto-scaling**: Implement auto-scaling policies to automatically adjust the number of running instances based on traffic patterns.
 
 ## Conclusion
-This document provides a comprehensive overview of the design and architecture of the Scribble discussion forum. It covers the functional and non-functional requirements, system architecture, component design, API design, data model, security measures, and scalability strategies. By following this design, we aim to build a robust, scalable, and secure platform for users to engage in meaningful discussions.
+As a concluding thought, the name "Scribble" was inspired by the random doodles and notes we often make when brainstorming ideas. Keep scribbling!
