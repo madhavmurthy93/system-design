@@ -44,8 +44,6 @@ The system will be built using a microservices architecture pattern where each s
 7. **Ranking Service**: Generates and serves the list of the top posts for the homepage measured as the total upvotes - downvotes in the last 24 hours. 
 8. **Search Service**: Provides search functionality for posts and comments. 
 
-### Architecture Diagram
-
 ## Component Design
 
 ### API Gateway
@@ -74,20 +72,224 @@ The ranking service pre-computes the ranking of the top posts in the last 24 hou
 ### Search Service
 We will use Elasticsearch to enable search queries against posts and comments. In order to feed the Elasticsearch index, we will setup a message broker between the posts + comments service and the search service. For every create, update or delete of a post or comment an event will be sent over the message broker. The event is processed and indexed in Elasticsearch.
 
-On searching, an Elasticsearch query is executed and relevant results are returned to the client. Full content of any relevant posts can be loaded as needed. 
+On searching, an Elasticsearch query is executed and relevant results are returned to the client. 
 
 ## API Design
-Outline the APIs, including endpoints, request/response formats, and authentication.
+The system can quite easily be represented by resources and operations on those resources. Therefore, we will go with a resource-based design and implement RESTful APIs.
 
+### Resources
+There are 5 resources to work with: users, posts, images, comments and votes. Users and posts are independent collections since users can exist independent of posts. Comments are a sub-collection of a post resource since comments can only be associated with a post and can't exist independently. Similarly images are also a sub-collection of a post. Vote can be a sub-resource of both a post or a comment. 
+
+### URIs
+Given the above structure we have the following URIs.
+
+```markdown
+/users
+/users/{userId}
+
+/posts
+/posts{postId}
+
+/posts/{postId}/comments
+/posts/{postId}/comments/{commentId}
+
+/posts/{postId}/images
+/posts/{postId}/images/{imageId}
+
+/posts/{postId}/vote
+/posts/{postId}/comments/{commentId}/vote
+```
+
+### Resource Representation
+```javascript
+/users/{userId}
+{
+  id: "x20s"
+  username: "madhavm",
+  email: "madhavmurthy93@gmail.com",
+  firstName: "Madhav",
+  lastName: "Murthy",
+  passwordHash: "sdflj2424dsdsd24",
+  createdAt: "timestampz"
+  updatedAt: "timestampz"
+}
+
+/posts/{postId}
+{
+  id: "129dl",
+  userId: "x20s",
+  title: "The world is flat.",
+  body: "A very long explanation.",
+  images: ["/images/iriod", "/images/3384ms"]
+  topics: ["flat", "world" ],
+  upvotes: 10,
+  downvotes: 2,
+  createdAt: "timestampz"
+  updatedAt: "timestampz"
+}
+
+/posts/{postId}/comments/{commentId}
+{
+  id: "3kdo3",
+  userId: "39x9",
+  postId: "129dl",
+  body: "A very boring comment",
+  upvotes: 2,
+  downvotes: 5,
+  createdAt: "timestampz"
+  updatedAt: "timestampz"
+}
+```
+
+### Methods
+The following methods can be applied. 
+
+```markdown
+// Signup
+POST /users
+
+// Login
+POST /users/{userId}
+
+// Create post
+POST /posts
+
+// Edit post
+PATCH /posts/{postId}
+
+// Delete post
+DELETE /posts/{postId}
+
+// Get posts
+GET /posts
+
+// Get post
+GET /posts/{postId}
+
+// Create comment
+POST /posts/{postId}/comments
+
+// Edit comment
+PATCH /posts/{postId}/comments/{commentId}
+
+// Delete comment
+DELETE /posts/{postId}/comments/{commentId}
+
+// Get comments
+GET /posts/{postId}/comments
+
+// Get comment
+GET /posts/{postId}/comments/{commentId}
+
+// Upload image
+POST /posts/{postId}/images
+
+// Delete image
+DELETE /posts/{postId}/images/{imageId}
+
+// Get images metadata
+GET /posts/{postId}/images
+
+// Get image metadata
+GET /posts/{postId}/images/{imageId}
+
+// Get image
+Public URLs
+
+// Vote 
+POST /posts/{postId}/vote
+
+// Vote comment
+POST /posts/{postId}/comments/{commentId}/vote
+
+```
 
 ## Data Model
-Describe the data model, including database schema and relationships.
+We will use a mix of relational and noSQL databases. Relational databases for simple structures and noSQL databases for more complicated documents. 
+
+### Users
+For the users table we use a relational structure. 
+```sql
+CREATE TABLE Users (
+  id VARCHAR PRIMARY KEY,
+  username VARCHAR UNIQUE NOT NULL,
+  email VARCHAR UNIQUE NOT NULL,
+  firstName VARCHAR NOT NULL,
+  lastName VARCHAR NOT NULL,
+  passwordHash VARCHAR NOT NULL,
+  createdAt TIMESTAMP NOT NULL,
+  updatedAt TIMESTAMP NOT NULL
+);
+```
+
+### Posts
+For posts and comments we use a noSQL approach since we want to keep the document structure open-ended. 
+```javascript
+{
+  id: String,
+  userId: String,
+  title: String,
+  body: String,
+  images: Array of Strings,
+  topics: Array of Strings,
+  upvotes: Integer,
+  downvotes: Integer,
+  createdAt: Timstamp,
+  updatedAt: Timestamp
+}
+```
+
+### Comments
+```javascript
+{
+  id: String,
+  userId: String,
+  postId: String,
+  body: String,
+  upvotes: Integer,
+  downvotes: Integer,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Votes
+```javascript
+(
+  id: String,
+  userId: String,
+  commentId: String,
+  vote: Integer,
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+)
+```
+
+### Images
+```javascript
+{
+  id: String,
+  postId: String,
+  url: String,
+  createdAt: Timestamp
+}
+```
 
 ## Security
-Discuss the security measures and protocols implemented in the system.
+To ensure the security of the system, the following measures will be implemented:
+1. **Authentication and Authorization**: Use JWT tokens for user authentication and role-based access control for authorization.
+2. **Data Encryption**: Encrypt sensitive data both at rest and in transit using industry-standard encryption algorithms.
+3. **Input Validation**: Validate all user inputs to prevent SQL injection, XSS, and other injection attacks.
+4. **Rate Limiting**: Implement rate limiting at the API Gateway to prevent abuse and DDoS attacks.
+5. **Audit Logging**: Maintain audit logs for critical actions to detect and respond to security incidents.
 
 ## Scalability
-Explain how the system can scale to handle increased load.
+To handle increased load, the system will employ the following scalability strategies:
+1. **Horizontal Scaling**: Scale out services by adding more instances behind a load balancer.
+2. **Database Sharding**: Distribute database load by sharding data across multiple database instances.
+3. **Caching**: Use caching mechanisms like Redis or Memcached to reduce database load and improve response times.
+4. **Asynchronous Processing**: Use message queues for tasks that can be processed asynchronously to improve system responsiveness.
+5. **Auto-scaling**: Implement auto-scaling policies to automatically adjust the number of running instances based on traffic patterns.
 
 ## Conclusion
-Summarize the document and restate the key points.
+This document provides a comprehensive overview of the design and architecture of the Scribble discussion forum. It covers the functional and non-functional requirements, system architecture, component design, API design, data model, security measures, and scalability strategies. By following this design, we aim to build a robust, scalable, and secure platform for users to engage in meaningful discussions.
